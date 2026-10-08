@@ -125,6 +125,55 @@ class App:
                         self._running = False
     def check_grid(self) -> bool:
         """Check the grid"""
+
+        # generate groups of colours
+        colours = {}
+        for y in range(len(self._grid._cells)):
+            for x in range(len(self._grid._cells[y])):
+                cell = self._grid._cells[y][x]
+                if cell._num not in colours:
+                    colours[cell._num] = []
+                colours[cell._num].append((y, x))
+
+        # get colours that are not crossed out
+        filtered = {}
+        for y in range(len(self._grid._cells)):
+            for x in range(len(self._grid._cells[y])):
+                cell = self._grid._cells[y][x]
+                if cell._cross is False and cell._cat is False:
+                    if cell._num not in filtered:
+                        filtered[cell._num] = []
+                    filtered[cell._num].append((y, x))
+
+        # check for colours with only 1 cell available
+        for colour in filtered.keys():
+            if len(filtered[colour]) == 1:
+                print(f"{colour} is single")
+                _x = filtered[colour][0][1]
+                _y = filtered[colour][0][0]
+                self._grid._cells[_y][_x]._cat = True
+                # cross around
+                for y in range(_y-1, _y+2):
+                    for x in range(_x-1, _x+2):
+                        if x != _x or y != _y:
+                            if self._grid._cells[y][x]._cross is False and self._grid._cells[y][x]._cat is False:
+                                self._grid._cells[y][x]._cross = True
+                # cross col
+                for x in range(len(self._grid._cells[0])):
+                    if x != _x:
+                        if self._grid._cells[_y][x]._cross is False and self._grid._cells[_y][x]._cat is False:
+                            self._grid._cells[_y][x]._cross = True
+                # cross row
+                for y in range(len(self._grid._cells)):
+                    if self._grid._cells[y][_x]._cross is False and self._grid._cells[y][_x]._cat is False:
+                        self._grid._cells[y][_x]._cross = True
+
+        # check for colours with only 1 dimension available (row/col)
+
+        # check for colours that are the only in a row
+
+        # check for colours that are the only in a col
+
         return False
     def on_render(self) -> None:
         """Render the game."""
@@ -162,6 +211,14 @@ class App:
         width = CELL_WIDTH
         height = CELL_HEIGHT
         pygame.draw.rect(self._display_surf, colours[cell._num], (left, top, width, height), 0)
+
+        if cell._cross is True:
+            pygame.draw.line(self._display_surf, COL_WHITE, (left,top), (left+width,top+height), 3)
+            pygame.draw.line(self._display_surf, COL_WHITE, (left,top+height), (left+width,top), 3)
+
+        if cell._cat is True:
+            pygame.draw.circle(self._display_surf, COL_WHITE, (left+(width/2), top+(height/2)), CELL_WIDTH/2, 3)
+
     def on_cleanup(self) -> None:
         """Cleanup."""
         pygame.quit()
