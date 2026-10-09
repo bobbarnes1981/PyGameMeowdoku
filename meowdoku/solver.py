@@ -16,15 +16,16 @@ CELL_HEIGHT = 40
 COL_WHITE = (255,255,255)
 
 colours = {
-    1: (76,182,176),
-    2: (174,217,148),
-    3: (255,170,109),
-    4: (237,141,182),
-    5: (153,121,214),
-    6: (250,181,208),
-    7: (167,191,215),
-    8: (107,188,231),
-    9: (228,187,73),
+    1:  (76,182,176),
+    2:  (174,217,148),
+    3:  (255,170,109),
+    4:  (237,141,182),
+    5:  (153,121,214),
+    6:  (250,181,208),
+    7:  (167,191,215),
+    8:  (107,188,231),
+    9:  (228,187,73),
+    10: (89,73,28)
 }
 
 if CELL_THICKNESS%2 == 0:
@@ -82,7 +83,9 @@ class App:
         self._complete = False
         self.font_s = None
         self.font_l = None
-
+    def valid_coord(self, x, y) -> bool:
+        """Check if coordinates are valid"""
+        return x >= 0 and x < self._col_count and y >=0 and y < self._row_count
     def is_complete(self) -> bool:
         """Check if is complete"""
         return self._complete
@@ -127,10 +130,6 @@ class App:
     def _cross_cells(self, cells: list[Position]) -> None:
         """Cross all cells in provided list"""
         for coord in cells:
-            if coord.x == 5 and coord.y == 0:
-                c = self._grid._cells[coord.y][coord.x].num()
-                print_colour(c, f"Trying to cross {c}")
-                raise Exception("debug")
             self._grid._cells[coord.y][coord.x]._cross = True
     def _get_cross_row(self, x: int, y: int, colour_ids: list[int]) -> list[Position]:
         """Get all the cells in a row that are not a cross or a cat"""
@@ -163,7 +162,7 @@ class App:
         cells: list[Position] = []
         for _y in range(y-1, y+2):
             for _x in range(x-1, x+2):
-                if (_x != x or _y != y) and _x >= 0 and _x < self._col_count and _y >=0 and _y < self._row_count:
+                if (_x != x or _y != y) and self.valid_coord(_x, _y):
                     if self._grid._cells[_y][_x].is_cross() is False and self._grid._cells[_y][_x].is_cat() is False:
                         cells.append(Position(_x, _y))
         return cells
@@ -335,17 +334,101 @@ class App:
                     self._cross_cells(list(consistent_cells))
                     steps_taken = True
 
-        # TODO: CHECK FOR PLACEMENTS THAT MAKE A ROW OR COLUMN IMPOSSIBLE
+        if not steps_taken:
+            # find rows with three free spaces and exclude placements that make the row impossible
+            coord_list: list[list[Position]] = self._grid.get_coords_for_rows_with_only_n_space(3)
+            for coords in coord_list:
+                x_str = ",".join([str(c.x) for c in coords])
+                print(f"row {coords[0].y} has spaces at {x_str}")
+                cells:list[Position] = []
+                # check coords[0].y-1 at coords[1].x
+                x = coords[1].x
+                y = coords[1].y-1
+                if self.valid_coord(x, y):
+                    cell = self._grid._cells[y][x]
+                    if cell.is_cat() is False and cell.is_cross() is False:
+                        cells.append(Position(x, y))
+                # check coords[0].y+1 at coords[1].x
+                x = coords[1].x
+                y = coords[1].y+1
+                if self.valid_coord(x, y):
+                    cell = self._grid._cells[y][x]
+                    if cell.is_cat() is False and cell.is_cross() is False:
+                        cells.append(Position(x, y))
+                for cell in cells:
+                    print(f"excluding cell {cell.x},{cell.y}")
+                    self._cross_cells([cell])
+                    steps_taken = True
+
+        if not steps_taken:
+            # find cols with three free spaces and exclude placements that make the col impossible
+            coord_list: list[list[Position]] = self._grid.get_coords_for_cols_with_only_n_space(3)
+            for coords in coord_list:
+                y_str = ",".join([str(c.y) for c in coords])
+                print(f"col {coords[0].x} has spaces at {y_str}")
+                cells:list[Position] = []
+                # check coords[0].x-1 at coords[1].y
+                x = coords[1].x-1
+                y = coords[1].y
+                if self.valid_coord(x, y):
+                    cell = self._grid._cells[y][x]
+                    if cell.is_cat() is False and cell.is_cross() is False:
+                        cells.append(Position(x, y))
+                # check coords[0].x+1 at coords[1].y
+                x = coords[1].x+1
+                y = coords[1].y
+                if self.valid_coord(x, y):
+                    cell = self._grid._cells[y][x]
+                    if cell.is_cat() is False and cell.is_cross() is False:
+                        cells.append(Position(x, y))
+                for cell in cells:
+                    print(f"excluding cell {cell.x},{cell.y}")
+                    self._cross_cells([cell])
+                    steps_taken = True
+
+        # TODO: same as above but for rows and columns with 2 free spaces...
+
+        if not steps_taken:
+            # check for rows with single cell left
+            coord_list: list[list[Position]] = self._grid.get_coords_for_rows_with_only_n_space(1)
+            for coords in coord_list:
+                x_str = ",".join([str(c.x) for c in coords])
+                coord = coords[0]
+                colour_id = self._grid._cells[coord.y][coord.x].num()
+                print_colour(colour_id, f"row {coord.y} has space at {x_str}")
+                self._set_cat(coord.x, coord.y)
+                if self._cross_colour(coord.x, coord.y):
+                    steps_taken = True
+                if self._cross_around(coord.x, coord.y):
+                    steps_taken = True
+                if self._cross_row(coord.x, coord.y, [self._grid._cells[coord.y][coord.x].num()]):
+                    steps_taken = True
+                if self._cross_col(coord.x, coord.y, [self._grid._cells[coord.y][coord.x].num()]):
+                    steps_taken = True
+
+        if not steps_taken:
+            # check for cols with single cell left
+            coord_list: list[list[Position]] = self._grid.get_coords_for_cols_with_only_n_space(1)
+            for coords in coord_list:
+                y_str = ",".join([str(c.y) for c in coords])
+                coord = coords[0]
+                colour_id = self._grid._cells[coord.y][coord.x].num()
+                print_colour(colour_id, f"col {coord.x} has space at {y_str}")
+                self._set_cat(coord.x, coord.y)
+                if self._cross_colour(coord.x, coord.y):
+                    steps_taken = True
+                if self._cross_around(coord.x, coord.y):
+                    steps_taken = True
+                if self._cross_row(coord.x, coord.y, [self._grid._cells[coord.y][coord.x].num()]):
+                    steps_taken = True
+                if self._cross_col(coord.x, coord.y, [self._grid._cells[coord.y][coord.x].num()]):
+                    steps_taken = True
+
+        # check for colour that has single available option left
 
         # check for colours that are the only colour in a row, cross out rest of colour not in row
 
         # check for colours that are the only colour in a col, cross out rest of colour not in col
-
-        # check for single available cell in row
-
-        # check for single availabel cell in col
-
-        # check for colour that has single available option left
 
         return False
     def on_render(self) -> None:

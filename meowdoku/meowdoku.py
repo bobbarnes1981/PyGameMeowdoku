@@ -59,6 +59,48 @@ class Grid:
                             coords[cell.num()] = []
                         coords[cell.num()].append(Position(x, y))
         return coords
+    def get_coords_for_rows_with_only_n_space(self, n: int) -> list[list[Position]]:
+        """Get a list of coords for each row that has only n contiguous spaces left"""
+        coord_list: list[list[Position]] = []
+        for y in range(len(self._cells)): # pylint: disable=consider-using-enumerate
+            spaces: list[list[int]] = []
+            restart = True
+            for x in range(len(self._cells[y])):
+                cell = self._cells[y][x]
+                if cell.is_cat() is False and cell.is_cross() is False:
+                    if restart is True:
+                        spaces.append([])
+                        restart = False
+                    spaces[-1].append(x)
+                else:
+                    restart = True
+            if len(spaces) == 1 and len(spaces[0]) == n:
+                coords = []
+                for space in spaces[0]:
+                    coords.append(Position(space, y))
+                coord_list.append(coords)
+        return coord_list
+    def get_coords_for_cols_with_only_n_space(self, n: int) -> list[list[Position]]:
+        """Get a list of coords for each col that has only n contiguous spaces left"""
+        coord_list: list[list[Position]] = []
+        for x in range(len(self._cells[0])):
+            spaces: list[list[int]] = []
+            restart = True
+            for y in range(len(self._cells)): # pylint: disable=consider-using-enumerate
+                cell = self._cells[y][x]
+                if cell.is_cat() is False and cell.is_cross() is False:
+                    if restart is True:
+                        spaces.append([])
+                        restart = False
+                    spaces[-1].append(y)
+                else:
+                    restart = True
+            if len(spaces) == 1 and len(spaces[0]) == n:
+                coords = []
+                for space in spaces[0]:
+                    coords.append(Position(x, space))
+                coord_list.append(coords)
+        return coord_list
 
 class Cell:
     """Represents the meowdoku cell"""
