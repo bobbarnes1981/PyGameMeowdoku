@@ -345,6 +345,8 @@ class App:
 
         # check for single availabel cell in col
 
+        # check for colour that has single available option left
+
         return False
     def on_render(self) -> None:
         """Render the game."""
