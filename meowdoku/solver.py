@@ -115,7 +115,7 @@ class App:
         """When counter elapses check."""
         self._counter+=elapsed
         if self._counter > self._delay:
-            logging.info("tick")
+            #logging.info("tick")
             self._counter = 0
             if not self._complete:
                 if self._paused is False and self.check_grid():
@@ -123,13 +123,21 @@ class App:
     def _set_cat(self, _x: int, _y: int) -> bool:
         """Set the cell to contain a cat"""
         steps_taken = False
+        if self._grid._cells[_y][_x].is_cross() is True:
+            raise Exception("Cannot set cat on crossed cell")
         if self._grid._cells[_y][_x].is_cat() is False:
+            colour_id = self._grid._cells[_y][_x].num()
+            print_colour(colour_id, f"setting cat for {colour_id} ({_x},{_y})")
             self._grid._cells[_y][_x]._cat = True
             steps_taken = True
         return steps_taken
     def _cross_cells(self, cells: list[Position]) -> None:
         """Cross all cells in provided list"""
         for coord in cells:
+            if self._grid._cells[coord.y][coord.x].is_cross():
+                raise Exception("Cell is already crossed")
+            if self._grid._cells[coord.y][coord.x].is_cat():
+                raise Exception("Cannot set cross on cat cell")
             self._grid._cells[coord.y][coord.x]._cross = True
     def _get_cross_row(self, x: int, y: int, colour_ids: list[int]) -> list[Position]:
         """Get all the cells in a row that are not a cross or a cat"""
@@ -190,21 +198,24 @@ class App:
         steps_taken = False
         locations: dict[int, Position] = self._grid.get_cat_locations()
         for colour_id in locations.keys(): # pylint: disable=consider-using-dict-items
-            print_colour(colour_id, f"{colour_id} has a cat")
+            colour_steps = False
             coord: Position = locations[colour_id]
             if self._cross_colour(coord.x, coord.y):
-                steps_taken = True
+                colour_steps = True
             if self._cross_around(coord.x, coord.y):
-                steps_taken = True
+                colour_steps = True
             if self._cross_row(coord.x, coord.y, [self._grid._cells[coord.y][coord.x].num()]):
-                steps_taken = True
+                colour_steps = True
             if self._cross_col(coord.x, coord.y, [self._grid._cells[coord.y][coord.x].num()]):
+                colour_steps = True
+            if colour_steps:
                 steps_taken = True
+                print_colour(colour_id, f"{colour_id} has a cat")
         return steps_taken
     def _check_for_single_cell_colours(self) -> bool:
         """check for colours with only 1 cell available"""
         steps_taken = False
-        colour_coords: dict[int, list[Position]] = self._grid.get_available_coords()
+        colour_coords: dict[int, list[Position]] = self._grid.get_available_coords([])
         for colour_id in colour_coords.keys(): # pylint: disable=consider-using-dict-items
             if len(colour_coords[colour_id]) == 1:
                 print_colour(colour_id, f"{colour_id} is single")
@@ -221,7 +232,7 @@ class App:
     def _check_for_colours_1_wide(self):
         """check for 1 colours with only 1 wide"""
         steps_taken = False
-        colour_coords: dict[int, list[Position]] = self._grid.get_available_coords()
+        colour_coords: dict[int, list[Position]] = self._grid.get_available_coords([])
         col_colours: dict[int, Position] = {}
         row_colours: dict[int, Position] = {}
         for colour_id in colour_coords.keys(): # pylint: disable=consider-using-dict-items
@@ -235,12 +246,12 @@ class App:
             if (len(x_vals) == 1) ^ (len(y_vals) == 1): # XOR (only one or other, not both, both would indicate a single cell) Maybe we can combine this check with check for single cell
                 if len(x_vals) == 1:
                     # is a single column
-                    print_colour(colour_id, f"{colour_id} is col")
-                    col_colours[colour_id] = coord
+                    print_colour(colour_id, f"{colour_id} is col ({x_vals[0]})")
+                    col_colours[colour_id] = Position(x_vals[0], 0)
                 if len(y_vals) == 1:
                     # is a single row
-                    print_colour(colour_id, f"{colour_id} is row")
-                    row_colours[colour_id] = coord
+                    print_colour(colour_id, f"{colour_id} is row ({y_vals[0]})")
+                    row_colours[colour_id] = Position(0, y_vals[0])
         for colour_id in col_colours.keys(): # pylint: disable=consider-using-dict-items
             # is a single column
             coord = col_colours[colour_id]
@@ -255,7 +266,7 @@ class App:
     def _check_for_2_colours_2_wide(self) -> bool:
         """check for 2 colours with 2 wide"""
         steps_taken = False
-        colour_coords: dict[int, list[Position]] = self._grid.get_available_coords()
+        colour_coords: dict[int, list[Position]] = self._grid.get_available_coords([])
         col_colours: dict[int, tuple[int, int]] = {}
         row_colours: dict[int, tuple[int, int]] = {}
         for colour_id in colour_coords.keys(): # pylint: disable=consider-using-dict-items
@@ -285,7 +296,6 @@ class App:
                     if x_vals1[0] == x_vals2[0] and x_vals1[1] == x_vals2[1]: # TODO: this might not work if the numbers are not in the same order
                         sets.append(((colour_id1, colour_id2), (x_vals1[0], x_vals1[1])))
         for exclusion in sets:
-            print("found col-like exclusions")
             colour_id1 = exclusion[0][0]
             colour_id2 = exclusion[0][1]
             x1 = exclusion[1][0]
@@ -306,7 +316,6 @@ class App:
                     if y_vals1[0] == y_vals2[0] and y_vals1[1] == y_vals2[1]: # TODO: this might not work if the numbers are not in the same order
                         sets.append(((colour_id1, colour_id2), (y_vals1[0], y_vals1[1])))
         for exclusion in sets:
-            print("found row-like exclusions")
             colour_id1 = exclusion[0][0]
             colour_id2 = exclusion[0][1]
             y1 = exclusion[1][0]
@@ -321,17 +330,19 @@ class App:
     def _check_for_consistent_exclusions(self) -> bool:
         """check each colour for external cells that are always excluded"""
         steps_taken = False
-        colour_coords: dict[int, list[Position]] = self._grid.get_available_coords()
+        colour_coords: dict[int, list[Position]] = self._grid.get_available_coords([])
         for colour_id in colour_coords.keys(): # pylint: disable=consider-using-dict-items
-            consistent_cells:set = set()
+            all_cells: list[Position] = []
+            for _y in range(self._row_count):
+                for _x in range(self._col_count):
+                    all_cells.append(Position(_x, _y))
+            consistent_cells:set = set(all_cells)
             for coord in colour_coords[colour_id]:
                 c = set(self._get_cross_around(coord.x, coord.y)).union(set(self._get_cross_row(coord.x, coord.y, [colour_id])).union(set(self._get_cross_col(coord.x, coord.y, [colour_id]))))
-                if not consistent_cells:
-                    consistent_cells = c
-                else:
-                    consistent_cells = consistent_cells.intersection(c)
+                consistent_cells = consistent_cells.intersection(c)
             if len(consistent_cells) > 0:
-                print_colour(colour_id, f"{colour_id} has {len(consistent_cells)} consistent exclusions")
+                c_str = ",".join([f"({c.x},{c.y})" for c in consistent_cells])
+                print_colour(colour_id, f"{colour_id} has {len(consistent_cells)} consistent exclusions: {c_str}")
                 self._cross_cells(list(consistent_cells))
                 steps_taken = True
         return steps_taken

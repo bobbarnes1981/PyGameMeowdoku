@@ -47,15 +47,15 @@ class Grid:
                     coords[cell.num()] = []
                 coords[cell.num()].append(Position(x, y))
         return coords
-    def get_available_coords(self, colours_ids: list[int] = None) -> dict[int, list[Position]]:
+    def get_available_coords(self, colours_ids: list[int]) -> dict[int, list[Position]]:
         """Get dictionary of coords that are not cat or cross, optionally filtered by colour_ids"""
         coords: dict[int, list[Position]] = {}
         for y in range(len(self._cells)): # pylint: disable=consider-using-enumerate
             for x in range(len(self._cells[y])):
                 cell = self._cells[y][x]
-                if colours_ids is None or cell.num() in colours_ids:
+                if not colours_ids or cell.num() in colours_ids:
                     if cell.is_cross() is False and cell.is_cat() is False:
-                        if cell.num() not in coords:
+                        if cell.num() not in coords.keys():
                             coords[cell.num()] = []
                         coords[cell.num()].append(Position(x, y))
         return coords
