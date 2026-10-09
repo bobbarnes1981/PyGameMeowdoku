@@ -280,11 +280,11 @@ class App:
             if (len(x_vals) == 2) or (len(y_vals) == 2):
                 if len(x_vals) == 2:
                     # two vals in x direction, 'col-like' structure
-                    print_colour(colour_id, f"{colour_id} has col-like structure {x_vals[0]} {x_vals[1]}")
+                    print_colour(colour_id, f"{colour_id} has col-like structure; cols {x_vals[0]} and {x_vals[1]}")
                     col_colours[colour_id] = (x_vals[0], x_vals[1])
                 if len(y_vals) == 2:
                     # two vals in y direction, 'row-like' structure
-                    print_colour(colour_id, f"{colour_id} has row-like structure {y_vals[0]} {y_vals[1]}")
+                    print_colour(colour_id, f"{colour_id} has row-like structure; rows {y_vals[0]} and {y_vals[1]}")
                     row_colours[colour_id] = (y_vals[0], y_vals[1])
         # find sets of two with matching x_vals
         sets: list[tuple[tuple[int, int], tuple[int, int]]] = []
@@ -300,8 +300,8 @@ class App:
             colour_id2 = exclusion[0][1]
             x1 = exclusion[1][0]
             x2 = exclusion[1][1]
-            print_colour(colour_id1, f"{colour_id1} excludes {x1} {x2}")
-            print_colour(colour_id2, f"{colour_id2} excludes {x1} {x2}")
+            print_colour(colour_id1, f"{colour_id1} excludes cols {x1} {x2}")
+            print_colour(colour_id2, f"{colour_id2} excludes cols {x1} {x2}")
             if self._cross_col(x1, 0, [colour_id1, colour_id2]):
                 steps_taken = True
             if self._cross_col(x2, 0, [colour_id1, colour_id2]):
@@ -320,8 +320,8 @@ class App:
             colour_id2 = exclusion[0][1]
             y1 = exclusion[1][0]
             y2 = exclusion[1][1]
-            print_colour(colour_id1, f"{colour_id1} excludes {y1} {y2}")
-            print_colour(colour_id2, f"{colour_id2} excludes {y1} {y2}")
+            print_colour(colour_id1, f"{colour_id1} excludes rows {y1} {y2}")
+            print_colour(colour_id2, f"{colour_id2} excludes rows {y1} {y2}")
             if self._cross_row(0, y1, [colour_id1, colour_id2]):
                 steps_taken = True
             if self._cross_row(0, y2, [colour_id1, colour_id2]):
