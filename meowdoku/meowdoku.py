@@ -37,15 +37,6 @@ class Grid:
                 if cell.is_cat():
                     locations[cell.num()] = Position(x, y)
         return locations
-    #def get_colour_ids_with_cat(self) -> list[int]:
-    #    """Get list of colour ids that have a cat"""
-    #    colour_ids: list[int] = []
-    #    for y in range(len(self._cells)): # pylint: disable=consider-using-enumerate
-    #        for x in range(len(self._cells[y])):
-    #            cell = self._cells[y][x]
-    #            if cell.num() not in colour_ids and cell.is_cat():
-    #                colour_ids.append(cell.num())
-    #    return colour_ids
     def get_all_coords(self) -> dict[int, list[Position]]:
         """Get dictionary of coords indexed by colour_id"""
         coords: dict[int, list[Position]] = {}

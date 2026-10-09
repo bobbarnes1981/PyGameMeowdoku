@@ -117,8 +117,6 @@ class App:
             if not self._complete:
                 if self._paused is False and self.check_grid():
                     self._complete = True
-                    if self._exit_on_complete:
-                        self._running = False
     def _set_cat(self, _x: int, _y: int) -> bool:
         """Set the cell to contain a cat"""
         steps_taken = False
