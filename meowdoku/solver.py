@@ -70,8 +70,8 @@ def get_height(y: int):
 class App:
     """Represents the pygame application."""
     def __init__(self, data, delay: float) -> None:
-        self._delay = delay
-        self._grid = meowdoku.Grid(data)
+        self._delay: float = delay
+        self._grid: meowdoku.Grid = meowdoku.Grid(data)
 
         self._row_count = len(self._grid._cells)
         self._col_count = len(self._grid._cells[0])
@@ -87,6 +87,8 @@ class App:
         self._font_s = None
         self._font_l = None
         self._complete = False
+        self.font_s = None
+        self.font_l = None
 
     def is_complete(self) -> bool:
         """Check if is complete"""
@@ -95,8 +97,7 @@ class App:
         """Initialise solver."""
         pygame.init()
         pygame.display.set_caption("Meowdoku")
-        self._display_surf = pygame.display.set_mode(self._size,
-                                                     pygame.HWSURFACE | pygame.DOUBLEBUF)
+        self._display_surf = pygame.display.set_mode(self._size, pygame.HWSURFACE | pygame.DOUBLEBUF)
         self._running = True
         font_name = pygame.font.get_default_font()
         logging.info("System font: %s", font_name)
@@ -123,30 +124,24 @@ class App:
                     self._complete = True
                     if self._exit_on_complete:
                         self._running = False
+    def _cross_row(self, _x: int, _y: int, colour: int) -> None:
+        """Cross all cells in row that are not cross or cat"""
+        for x in range(len(self._grid._cells[0])):
+            if x != _x:
+                if self._grid._cells[_y][x].is_cross() is False and self._grid._cells[_y][x].is_cat() is False and self._grid._cells[_y][x].num() != colour:
+                    self._grid._cells[_y][x]._cross = True
+    def _cross_col(self, _x: int ,_y: int, colour: int) -> None:
+        """Cross all cells in col that are not cross or cat"""
+        for y in range(len(self._grid._cells)): # pylint: disable=consider-using-enumerate
+            if self._grid._cells[y][_x].is_cross() is False and self._grid._cells[y][_x].is_cat() is False and self._grid._cells[y][_x].num() != colour:
+                self._grid._cells[y][_x]._cross = True
     def check_grid(self) -> bool:
         """Check the grid"""
-
-        # generate groups of colours
-        colours = {}
-        for y in range(len(self._grid._cells)):
-            for x in range(len(self._grid._cells[y])):
-                cell = self._grid._cells[y][x]
-                if cell._num not in colours:
-                    colours[cell._num] = []
-                colours[cell._num].append((y, x))
-
-        # get colours that are not crossed out
-        filtered = {}
-        for y in range(len(self._grid._cells)):
-            for x in range(len(self._grid._cells[y])):
-                cell = self._grid._cells[y][x]
-                if cell._cross is False and cell._cat is False:
-                    if cell._num not in filtered:
-                        filtered[cell._num] = []
-                    filtered[cell._num].append((y, x))
+        # get colours that are not crossed out or cats
+        filtered = self._grid.get_available_colours()
 
         # check for colours with only 1 cell available
-        for colour in filtered.keys():
+        for colour in filtered.keys(): # pylint: disable=consider-using-dict-items
             if len(filtered[colour]) == 1:
                 print(f"{colour} is single")
                 _x = filtered[colour][0][1]
@@ -156,19 +151,35 @@ class App:
                 for y in range(_y-1, _y+2):
                     for x in range(_x-1, _x+2):
                         if x != _x or y != _y:
-                            if self._grid._cells[y][x]._cross is False and self._grid._cells[y][x]._cat is False:
+                            if self._grid._cells[y][x].is_cross() is False and self._grid._cells[y][x].is_cat() is False:
                                 self._grid._cells[y][x]._cross = True
-                # cross col
-                for x in range(len(self._grid._cells[0])):
-                    if x != _x:
-                        if self._grid._cells[_y][x]._cross is False and self._grid._cells[_y][x]._cat is False:
-                            self._grid._cells[_y][x]._cross = True
-                # cross row
-                for y in range(len(self._grid._cells)):
-                    if self._grid._cells[y][_x]._cross is False and self._grid._cells[y][_x]._cat is False:
-                        self._grid._cells[y][_x]._cross = True
+                self._cross_row(_x, _y, self._grid._cells[_y][_x].num())
+                self._cross_col(_x, _y, self._grid._cells[_y][_x].num())
 
         # check for colours with only 1 dimension available (row/col)
+        filtered = self._grid.get_available_colours()
+        for colour in filtered.keys(): # pylint: disable=consider-using-dict-items
+            x_vals = []
+            y_vals = []
+            for coord in filtered[colour]:
+                x = coord[1]
+                y = coord[0]
+                if x not in x_vals:
+                    x_vals.append(x)
+                if y not in y_vals:
+                    y_vals.append(y)
+            if (len(x_vals) == 1) ^ (len(y_vals) == 1): # XOR (only one or other, not both, both would indicate a single cell) Maybe we can combine this check with check for single cell
+                if len(x_vals) == 1:
+                    # is a single column
+                    print(f"{colour} is col")
+                    self._cross_col(x, y, colour)
+                if len(y_vals) == 1:
+                    # is a single row
+                    print(f"{colour} is row")
+                    self._cross_row(x, y, colour)
+
+        # TODO: with a list of coords for colour iterate over coords and check
+        #       if there are any external cells that are always crossed out
 
         # check for colours that are the only in a row
 
