@@ -3,7 +3,7 @@
 import argparse
 import json
 import logging
-import solver
+from app import App
 
 if __name__ == '__main__':
     loglevels = [
@@ -38,7 +38,7 @@ if __name__ == '__main__':
         content = f.read()
     data = json.loads(content)
 
-    a = solver.App(data, args.delay)
+    a = App(data, args.delay)
     a.on_execute()
 
     if a.is_complete():
