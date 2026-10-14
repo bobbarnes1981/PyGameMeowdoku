@@ -332,6 +332,7 @@ class Solver:
             colour_id2 = exclusion[0][1]
             x1 = exclusion[1][0]
             x2 = exclusion[1][1]
+            print(f"pair {colour_id1} and {colour_id2}")
             print_colour(colour_id1, f"{colour_id1} excludes cols {x1} {x2}")
             print_colour(colour_id2, f"{colour_id2} excludes cols {x1} {x2}")
             if self._cross_col(x1, 0, [colour_id1, colour_id2]):
